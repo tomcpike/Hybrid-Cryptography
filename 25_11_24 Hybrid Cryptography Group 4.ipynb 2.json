@@ -1,0 +1,324 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4f0eb2fd",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2935d032",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "042b241b",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6ce867e2",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d5db5158",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3185a78e",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "id": "27a15a0c",
+   "metadata": {},
+   "source": [
+    "## Turning vigenere key into a Tuple\n",
+    "Before we can encrypt using RSA, first we turn the vigenere key into a tuple, because of the way the RSA encryption works, so it runs in a suitable length of time. To do this, we design a function 'key_to_tuple', defined below. \n",
+    "First we define a variable key with the vigenere key by opening the key file and reading it, to assing it to a variable we can use.\n",
+    "Then, we use the quotient of the key when dividing by 64 to find how many sections we need to divide the key into, as 64 is the maximum length we can encrypt at a time. This is because we use 1024 bit encryption, which means we can use 1024/8 numbers at a time, which is 128. Since each letter has a 2-digit ASCII value, we can only use 64 letters at a time. \n",
+    "After this, we iterate through the segments, and for every charachter in the segment, ie. inbetween 64*i and 64*(i+1), if the character is the last element of the key, the function breaks, so we dont get a list index out of range error. Then we add the ASCII value to a list.\n",
+    "Next, we turn the list into a long integer, then add it to the rest of the key.\n",
+    "This is returned as a tuple, so it can be inputed into the RSA encryption function."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "00af7289",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(81688379868387887481666881737269807467657765848981768677886575856972848366787268857388848886678889758167807088688376848875879065,\n",
+       " 78738785907190668689858386717077887867898180898766797590778769667884757668738583828171776768666884837366757969868285718986808786,\n",
+       " 78766678826970658473698884757374847973697290828667827669799086858065808780656888767772676974708386658070908584827379747570678574,\n",
+       " 738669757590886876896688848784736671716571757285727571898988888870766683718784)"
+      ]
+     },
+     "execution_count": 13,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#### TURN VIGENERE KEY INTO NUMBERS ####\n",
+    " ## SPLIT KEY FIRST, RETURN TUPLE OF SPLIT KEY\n",
+    "def key_to_tuple():\n",
+    "    key_file = open(\"_vigenere_key.txt\",\"r\") #opens the vigenere key file\n",
+    "    key = key_file.read() #reads the vigenere key to key\n",
+    "\n",
+    "    num_of_splits = len(key)//64 #gets the quotient of the key length when dividing by 64 to find out our splits\n",
+    "    split_key = []\n",
+    "    for i in range(0,num_of_splits+1): #iterates through splits\n",
+    "        key_num_list = [] #creates a list for our number key\n",
+    "        for character in range(64*i,64*(i+1)): #iterates through all characters of that split\n",
+    "            if character == len(key): #makes sure not to go out of the range of the string\n",
+    "                break\n",
+    "            key_num_list.append(str(ord(key[character])))#appends the string value of the ASCII value of the character\n",
+    "\n",
+    "        key_num_str = \"\".join(key_num_list) #turns the list into a long string\n",
+    "        key_num = int(key_num_str) #turns the string into an integer\n",
+    "        split_key.append(key_num)#applies the split key to the big list\n",
+    "  \n",
+    "    return tuple(split_key)\n",
+    "\n",
+    "key_to_tuple()\n",
+    "# EVERY 2 DIGITS REPRESENTS ONE OF THE LETTERS OF OUR KEY"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ef728e4d",
+   "metadata": {},
+   "source": [
+    "# How RSA Works\n",
+    "We will use the RSA protocol to further incrypt the vigenere and N-gram keys. \n",
+    "The function works by first generating a public key, which is done by the reciever of the encrypted code. This takes the form $(N,e)$ for a large integer $N$ and smaller integer $e$.\n",
+    "To send our tuple through the function, with each part represented by an integer $m$, the system is that we should calculate $m^e \\bmod N$ and send that instead.\n",
+    "If this is intecepted, an adversary has the problem of finding\n",
+    "$m$ from the values of $m^e \\bmod N$, $N$ and $e$. This is very difficult. However, the key $(N,e)$ has some secret information that can be used to find $m$ much more quickly. \n",
+    "\n",
+    "### The RSA key generator\n",
+    "The first step is set up a key that can be used by other people to send messages to you.\n",
+    "1. Find two large prime numbers $p$ and $q$, using the functions given previously.\n",
+    "2. Let $N=pq$ and find $\\phi(N)$. Since $\\phi$ is a multiplicative function this is easy, because $\\phi(N) = (p-1)(q-1)$.\n",
+    "3. Choose a number $e$ such that $\\gcd(e,\\phi(N)) = 1$.\n",
+    "4. Find $d$, the modular inverse of $e$ modulo $\\phi(N)$. This is an integer where $ed \\equiv 1 \\bmod \\phi(N)$.\n",
+    "5. Publish `(N,e)`,this is the public key.\n",
+    "6. Do not publish `((p,q),phi,d)` as this is your private key. \n",
+    "\n",
+    "### Encryption.\n",
+    "\n",
+    "Let the message sent be an integer smaller than $N$, denoted $m$. The sender should send $m^e \\bmod N$, which is a number between $0$ and $N$.\n",
+    "\n",
+    "### Decryption.\n",
+    "\n",
+    "Once this ciphertext is recieved, the reciever can find $(m^e)^d \\bmod N$. Since $d$ is the modular inverse of $e$, $ed = k \\phi(N)+1$ for some $k$ and so the Euler-Fermat theorem implies $$(m^e)^d = m^{ed} = m^{k \\phi(N)+1} = m((m^{\\phi(N)} )^k) \\equiv m (1)^k \\equiv m \\bmod N.$$\n",
+    "\n",
+    "Since $m$ was less than $N$, this recovers the original message.\n",
+    "\n",
+    "This information was gathered from the lecture notes.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "654d7803",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "def RSA_key_generator(bitlength=1024): #can take 128 numbers with Bitlength of 1024\n",
+    "    \"\"\"This will generate RSA keys. This is a version of the private key.\n",
+    "    The output is ((PublicKey), PrivateExp, Factorisation).\n",
+    "    The PublicKey can be published, PrivateExp is needed to decrypt.\n",
+    "    Factorisation is not needed, but must be kept secret.\"\"\"\n",
+    "    ## Generate two large primes.\n",
+    "    p = cryptography_functions.random_prime(bitlength)\n",
+    "    q = cryptography_functions.random_prime(bitlength)\n",
+    "    N = p*q\n",
+    "    \n",
+    "    ## Next, get phi and use it to get a public and private exponent.\n",
+    "    phi = (p-1)*(q-1)\n",
+    "    ## Choose encryption exponent e randomly between 1 and p and q.\n",
+    "    e = random.randint(1,min(p,q))\n",
+    "    ## It must be coprime to phi though. We use rejection sampling again:    \n",
+    "    while cryptography_functions.gcd(e,phi) > 1:\n",
+    "        e = random.randint(1,min(p,q))\n",
+    "    \n",
+    "    ## Finally, get d using 'pow'\n",
+    "    ## (the extended Euclid's algorithm could do this too).\n",
+    "    d = pow(e,-1,phi)\n",
+    "    \n",
+    "    ## Then return the keys.\n",
+    "    return ((N,e),d%phi,{p:1,q:1})"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "5f82bc1e",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "(4388511712141894901500947014523905442377217127865116907017218340482615176541748259835319849515052949539316054080941831983654343029457354990979221369035352933649519958684770938340956180624243152632623303632059376013817571890899796049831339520766926553834401663581834161097478523213324570599653132592548480608326355469094999005951819165933146726742077703368145278587693632090377701139457076994791274478166161680750998216695061021353553127020321495839680112618191021152874720451317255101250941374343674168465136820619243458931510350844592192376014400822987768191843225401057726705941877621402492402073996120015504690071, 15041879677685022297538978508209878163183267416393671231886605122726583711212829853755967757674307553505836519552003703713103378751227924558076734735181972448380429093470772510905259248789250796768771104430794257787303794809827937685541391213859435595394195470620738571845746544124586687920476153019877529962382509022000848785564824118467115548746438174190242276400711414882522776723211183334522694427414148374645428715140923747016372837841258987825091203859843461934205222699960505556785578446931978391729527228495112578686037435844432682764819608024203490420476403718035245096286683150894991472049579417426054791295, 11199251222839517402950732524795312439198276283649435852849247317332805155243032502250636007578670350923572893692577847910897118009516070089286034331369014609868140872335312857203694642243710770083916146899314193597228062787110186017987688733539379992801171701411202516651762279864216175566100596948779850957156075499571110826661594536621566476701022528564337375915063765983156835839169052646089546521988472830124360406231863392565872622481643820446725148101736041273963782102033564747085506978126729845990466628845787008513139781901381526099992186487596182388396945335094182039572855580852278624248249801774732501841, 9508654134975085374033695771343145909308520235735467437382553872886814563144852416465700961926692806224217484704232703968772532321987614488862943661018539041276065184953009177149545400500241405537478067255942148810663998843533258023480866035791657358116711888520724635922881788664043750560361207935134376836893240648770539013010647489592093626557591269540240523062513947645311849349688781618528591085809824441036002791841989623095912548224334915885936385988495529076527500733304255235656638653471104859915173088445169523771714102496619034894712441931774629997817209109379523301879121247966073986101421353390160967773)\n"
+     ]
+    }
+   ],
+   "source": [
+    "def RSA_encrypt(N,e):\n",
+    "    encrypted_key_list=[]\n",
+    "    vigi_key_list = list(key_to_tuple())\n",
+    "    for element in vigi_key_list:\n",
+    "        i=pow(element,e,N)\n",
+    "        encrypted_key_list.append(i)\n",
+    "    \"\"\"Encrypt an integer 'message' using RSA with public key (N,e).\"\"\"\n",
+    "    return tuple(encrypted_key_list)\n",
+    "\n",
+    "public_key,d,factors = RSA_key_generator()\n",
+    "\n",
+    "cipher = RSA_encrypt(public_key[0],public_key[1])\n",
+    "print(cipher)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "c13ef2ad",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "816883798683878874816668817372698074676577658489817686778865758569728483667872688573888488866788897581678070886883768488758790657873878590719066868985838671707788786789818089876679759077876966788475766873858382817177676866688483736675796986828571898680878678766678826970658473698884757374847973697290828667827669799086858065808780656888767772676974708386658070908584827379747570678574738669757590886876896688848784736671716571757285727571898988888870766683718784\n"
+     ]
+    }
+   ],
+   "source": [
+    "def RSA_decrypt(encrypted_key,N,d):\n",
+    "    complete_key=[]\n",
+    "    decryption_list=list(encrypted_key)\n",
+    "    for element in decryption_list:\n",
+    "        j=pow(element,d,N)\n",
+    "        complete_key.append(str(j))\n",
+    "    \"\"\"Decrypt an integer message using RSA with public key (N,e) and private key (d, fact).\"\"\"\n",
+    "    return \"\".join(complete_key)\n",
+    "\n",
+    "received_int = RSA_decrypt(cipher,public_key[0],d)\n",
+    "\n",
+    "print(received_int)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "350aa2fd",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f18f8061",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "dd09e811",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "576f5ff4",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d01f8ae9",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7a799ab4",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9292cfbc",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f24b43dc",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.13"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
