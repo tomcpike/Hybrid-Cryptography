@@ -1,0 +1,593 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[ ]:
+
+
+import random, requests, os, matplotlib.pyplot as plt, cryptography_functions
+from random import randint
+from random import sample
+import string
+from itertools import permutations
+
+def find_file():
+    in_directory = False
+
+    while in_directory == False:
+        file_name = input("Input the name of the text file you would like to encrypt / decrypt, including the .txt: ")
+        if os.path.isfile(file_name): #checks if the inputted file is in the directory
+            in_directory = True
+        else:
+            print("")
+            print("The file you inputted is not in the directory, try again")
+          
+    return file_name
+
+def caesar_encrypt(): #defines the caesar encryption function
+    
+    file_name = find_file()
+
+    input_text = open(file_name,"r") #opens the text file we want to read
+    message = input_text.read() #reads the text file to the variable message
+    
+    encrypted_text = open("encrypted_text.txt","w") #opens the encrypted text file to which we write the encryption
+    
+    shift_value_file = open("_caesar_shift_value.txt","w")
+    shift_value = random.randint(1,26) #generates a shift value between 1 and 26 inclusive
+    
+    encrypted_message = []
+    
+    for character in message: #iterates character through each element of the message
+        if character.isalpha(): #checks to see if the character is in the alphabet
+            
+            if character.isupper(): #checks to see if character is uppercase
+                offset = 65 #sets appropriate offset value
+            else:
+                offset = 97
+            
+            character_offset = ord(character)-offset #offsets character to be between 0 and 25
+
+            encrypted_message.append(chr((character_offset+shift_value)%26+offset))
+            #appends our changed letter to the encrypted message list
+    
+
+    final_text = "".join(encrypted_message) #turns the list into a string
+    encrypted_text.write(final_text) #writes the string to the text file
+    shift_value_file.write(str(shift_value))
+    shift_value_file.close()
+    encrypted_text.close()
+    print("")
+    print("Encrypted message written to encrypted_text.txt")
+    print("Shift value written to caesar_shift_value.txt")
+    input_text.close() #closes the files
+    
+    return 
+
+
+def caesar_decrypt(): #needs a shift value to decrypt 
+    
+    file_name = find_file() #lets the user input the file name they would like to read
+    
+    shift_value_file = open("_caesar_shift_value.txt","r") #opens the shift value file
+    shift_value = int(shift_value_file.read()) #read the integer value stored there
+    
+    encrypted_text = open(file_name,"r") #opens the encrypted text file to read
+    cryptic = encrypted_text.read() #sets cryptic to the string value of all the text in encrypted_text.txt
+    
+    decrypted_text = open("decrypted_text.txt","w") #opens the decrypted text file to write to    
+
+    decrypted_message = []
+       
+    for character in cryptic: #iterates each character in the cryptic text
+        if character.isalpha(): #checks if character is in alphabet
+            
+            if character.isupper(): #checks if character is uppercase
+                offset = 65 #sets appropriate offset
+            else:
+                offset = 97
+            
+            character_offset = ord(character)-offset #offsets character to be between 0 and 25
+            
+            decrypted_message.append(chr((character_offset-shift_value)%26+offset))
+            #appends decrypted character to decrypted message list
+    
+    
+        
+    final_text = "".join(decrypted_message) #changes the list into a string
+    decrypted_text.write(final_text) #writes the string to the text file
+    
+    decrypted_text.close()  
+    encrypted_text.close()#closes the files
+    print("")
+    print("Decrypted message written to decrypted_text.txt")
+    
+    return 
+
+def vigenere_encrypt():
+    
+    file_name = find_file()
+    
+    input_text = open(file_name,"r") #opens the text file we want to read
+    message_list_unfiltered = list(input_text.read()) #reads the text file to the variable message
+    message_list = [x for x in message_list_unfiltered if x.isalpha()] #makes a list of only alphabetical characters
+    encrypted_text = open("encrypted_text.txt","w") #opens the encrypted text file to which we write the encryption
+    key_file = open("_vigenere_key.txt","w")
+   
+    
+    encrypted_message = []
+    key_length = random.randint(129,384) #generates a random length for our keyword
+    
+    key_list = [random.randint(0,25) for x in range(0,key_length)] #generates a list for our keyword in ASCII
+    
+    for i in range(0,len(message_list)):
+
+        key_pos =  i%len(key_list) #generates position of where we are in the key
+        
+
+        character = message_list[i] #sets character to message character for ease
+        if character.isupper(): #checks if y is uppercase in the alphabet
+            offset = 65 #sets ASCII offsets
+        else: offset = 97
+
+        character_offset = ord(character) - offset #offsets character to be within 0 and 25
+
+        character_encrypted = (character_offset+key_list[key_pos])%26 + offset #encrypts the character 
+
+        encrypted_message.append(chr(character_encrypted)) #appends encrypted character to encrypted message
+       
+    final_text = "".join(encrypted_message)
+    encrypted_text.write(final_text) #writes the final encrypted message to the file
+    
+    key = "".join(chr(m+65) for m in key_list) #turns keylist into a string
+    key_file.write(key) #writes the key to the file
+    
+    
+    encrypted_text.close()
+    input_text.close() #closes the files
+    key_file.close()
+    
+    print("Encrypted text written to encrypted_text.txt, and vigenere key written to _vigenere_key.txt")
+    
+    return      
+
+def vigenere_decrypt():
+    
+    file_name = find_file()
+    
+    key_file = open("_vigenere_key.txt","r") #opens file with key in it to read
+    key = key_file.read() #reads the file to key
+    key_list = [ord(m) - 65 for m in key] #offsets all values of key to be between 0 and 25
+    
+    encrypted_text = open(file_name,"r") #opens encrypted text file to read
+    cryptic = encrypted_text.read() #reads the file to cryptic
+    
+    decrypted_text = open("decrypted_text.txt","w") #opens the decrypted text file to write to
+    decrypted_message = [] #creates decrypted message list
+  
+    for i in range(0,len(cryptic)): #iterates through the encrypted message
+        character = cryptic[i] #sets character to the current character
+        key_pos = i%len(key_list) #sets our position within the key 
+        
+        if character.isupper(): #checks to see if the character is uppercase
+            offset = 65 #sets appropriate offset value
+        else:
+            offset = 97
+            
+        character_offset = ord(character)-offset #offsets character to be between 0 and 25
+        
+        character_decrypted = (character_offset-key_list[key_pos])%26 + offset
+        #decrypts the character using the keyword
+        
+        decrypted_message.append(chr(character_decrypted)) #appends character to decrypted message
+        
+    final_text = "".join(decrypted_message) #turns decrypted message into a string
+    decrypted_text.write(final_text) #writes this string to the decrypted text file
+    
+    decrypted_text.close() #closes the files
+    encrypted_text.close()
+    key_file.close()
+    print("Decrypted message written to decrypted_text.txt")
+    return
+    
+    
+def url_to_text_utf8(url):  #### Sourced code from the GitHub repo provided for this project
+    '''
+    Given a url for a text that is 
+    'utf-8' encoded this function 
+    returns that text.
+    '''
+    response = requests.get(url) #gets the URL of the text file
+    response.encoding = 'utf-8-sig' #encodes the text file
+    return response.text #returns the text file
+           
+def get_large_text():        
+    wonderland = url_to_text_utf8("https://gutenberg.org/cache/epub/11/pg11.txt")[1490:148820]
+    gatsby = url_to_text_utf8("https://gutenberg.org/cache/epub/64317/pg64317.txt")[1497:278020]
+    dracula = url_to_text_utf8("https://gutenberg.org/cache/epub/345/pg345.txt")[3130:860610]
+    moby = url_to_text_utf8("https://gutenberg.org/cache/epub/2701/pg2701.txt")[6000:1241690]
+    frankenstein = url_to_text_utf8("https://gutenberg.org/cache/epub/84/pg84.txt")[1440:427680]
+    #creates large strings of texts from english books for analysis later
+
+    text = wonderland + gatsby + dracula + moby + frankenstein
+    return text
+
+def frequency_finder(text):
+    
+    counts = {chr(x):0 for x in range(65,91)} #creates a dictionary of all the letters in the alphabet with value 0
+    text = text.upper() #makes all text uppercase
+    for character in text: #iterates through all the elements of the string "text"
+        if character in counts: #checks if the element is an alphabet letter
+            counts[character]+=1 #ups the count by one for each letter
+    sorted_counts = dict(sorted(counts.items(), key=lambda item: item[1],reverse=True)) #sorts the dictionary by value
+    frequency = [x for x in sorted_counts] #creates an ordered list of the letters in decreasing frequency
+    return frequency
+
+text = get_large_text()
+counts = {chr(x):0 for x in range(65,91)}
+text = text.upper()
+total_count = 0
+for character in text:
+    if character in counts:
+        counts[character]+=1
+        total_count +=1
+
+pct_points_counts = {chr(x):0 for x in range(65,91)}
+for key in counts:
+    pct_points_counts[key] = counts[key]/total_count
+print(pct_points_counts)
+
+letters = list(counts.keys())
+appearances = list(counts.values())
+plt.bar(range(len(counts)),appearances,tick_label=letters)
+
+plt.show() #shows graph of letter frequencies 
+
+descending_frequencies = open("decsending_frequent_letters.txt","w")
+sorted_counts = dict(sorted(counts.items(), key=lambda item: item[1],reverse=True)) #sorts the dictionary by value
+frequency = [x for x in sorted_counts] #creates an ordered list of the letters in decreasing frequency
+descending_frequencies.write("".join(frequency))
+descending_frequencies.close() #writes the most frequent letters in descending order to the file
+
+def caesar_frequency_break():
+    
+    #DONT NEED TO RUN FREQUENCY ANALYSIS EVERY TIME, WRITE TO TEXT FILE
+    file_name = find_file()
+    
+    encrypted_text = open(file_name,"r") #opens the encrypted text file to read
+    cryptic = encrypted_text.read() #sets cryptic to the string value of all the text in encrypted_text.txt
+    
+    decrypted_text = open("decrypted_text.txt","w") #opens the decrypted text file to write to  
+    
+    frequent_letters = open("decsending_frequent_letters.txt","r")    
+    frequency_list = list(frequent_letters.read()) #gets the list of the most frequent letters in descending order
+    
+      
+    message_most_frequent = frequency_finder(cryptic)[0] #finds the most frequent letter in the encrypted message
+    
+    correctness = False 
+    while correctness == False: #iterates until plaintext is found
+        for i in range(0,len(frequency_list)):
+            decrypted_message = []
+            
+            shift_value = ord(message_most_frequent) - ord(frequency_list[i]) 
+            #finds the shift value with corresponding letter of frequency list 
+            
+            for character in cryptic: #iterates each character in the cryptic text
+                if character.isalpha(): #checks if character is in alphabet
+
+                    if character.isupper(): #checks if character is uppercase
+                        offset = 65 #sets appropriate offset
+                    else:
+                        offset = 97
+
+                    character_offset = ord(character)-offset #offsets character to be between 0 and 25
+
+                    decrypted_message.append(chr((character_offset-shift_value)%26+offset))
+                    #appends decrypted character to decrypted message list
+            print("".join(decrypted_message))
+            print("")
+            x = input("Does this look like plaintext? Press enter if so, type anything else if not: ")
+            if x == "":
+                correctness = True
+                print("")
+                print("Plaintext written to decrypted_text.txt")
+                break
+            else:
+                continue
+    decrypted_text.write("".join(decrypted_message)) #writes the plaintext to decrypted_text
+    decrypted_text.close()
+    encrypted_text.close()
+    frequent_letters.close() #closes the files
+    return
+    
+    
+#### TURN VIGENERE KEY INTO NUMBERS ####
+ ## SPLIT KEY FIRST, RETURN TUPLE OF SPLIT KEY
+def key_to_tuple():
+    key_file = open("_vigenere_key.txt","r") #opens the vigenere key file
+    key = key_file.read() #reads the vigenere key to key
+
+    num_of_splits = len(key)//64 #gets the quotient of the key length when dividing by 64 to find out our splits
+    split_key = []
+    for i in range(0,num_of_splits+1): #iterates through splits
+        key_num_list = [] #creates a list for our number key
+        for character in range(64*i,64*(i+1)): #iterates through all characters of that split
+            if character == len(key): #makes sure not to go out of the range of the string
+                break
+            key_num_list.append(str(ord(key[character])))#appends the string value of the ASCII value of the character
+
+        key_num_str = "".join(key_num_list) #turns the list into a long string
+        key_num = int(key_num_str) #turns the string into an integer
+        split_key.append(key_num)#applies the split key to the big list
+  
+    return tuple(split_key)
+
+key_to_tuple()
+# EVERY 2 DIGITS REPRESENTS ONE OF THE LETTERS OF OUR KEY
+
+def RSA_key_generator(bitlength=1024): #can take 128 numbers with Bitlength of 1024
+    """This will generate RSA keys. This is a version of the private key.
+    The output is ((PublicKey), PrivateExp, Factorisation).
+    The PublicKey can be published, PrivateExp is needed to decrypt.
+    Factorisation is not needed, but must be kept secret."""
+    ## Generate two large primes.
+    p = cryptography_functions.random_prime(bitlength)
+    q = cryptography_functions.random_prime(bitlength)
+    N = p*q
+    
+    ## Next, get phi and use it to get a public and private exponent.
+    phi = (p-1)*(q-1)
+    ## Choose encryption exponent e randomly between 1 and p and q.
+    e = random.randint(1,min(p,q))
+    ## It must be coprime to phi though. We use rejection sampling again:    
+    while cryptography_functions.gcd(e,phi) > 1:
+        e = random.randint(1,min(p,q))
+    
+    ## Finally, get d using 'pow'
+    ## (the extended Euclid's algorithm could do this too).
+    d = pow(e,-1,phi)
+    
+    ## Then return the keys.
+    return ((N,e),d%phi,{p:1,q:1})
+
+def RSA_encrypt(N,e):
+    encrypted_key_list=[]
+    vigi_key_list = list(key_to_tuple())
+    for element in vigi_key_list:
+        i=pow(element,e,N)
+        encrypted_key_list.append(i)
+    """Encrypt an integer 'message' using RSA with public key (N,e)."""
+    return tuple(encrypted_key_list)
+
+public_key,d,factors = RSA_key_generator()
+
+cipher = RSA_encrypt(public_key[0],public_key[1])
+
+def RSA_decrypt(encrypted_key,N,d):
+    complete_key=[]
+    decryption_list=list(encrypted_key)
+    for element in decryption_list:
+        j=pow(element,d,N)
+        complete_key.append(str(j))
+    """Decrypt an integer message using RSA with public key (N,e) and private key (d, fact)."""
+    return "".join(complete_key)
+
+received_int = RSA_decrypt(cipher,public_key[0],d)
+
+
+
+# create a dictionary of all bigrams:
+
+#first define our alphabet and frequencies
+ALPH_1 = string.ascii_lowercase
+# this is the frequencies from earlier in the project for each letter
+fr = {'a': 0.0813382530968154, 'b': 0.015772428180238454, 'c': 0.02307211235643865, 'd': 0.04378202350586753, 'e': 0.12486207836182597, 'f': 0.022079076561585642, 'g': 0.020784064969467386, 'h': 0.06501369165412156, 'i': 0.06853376455715428, 'j': 0.00125078732595071, 'k': 0.00849105910416825, 'l': 0.04209882113294529, 'm': 0.026337113986929273, 'n': 0.06876203324414029, 'o': 0.0749226075342068, 'p': 0.01639692842369527, 'q': 0.0012807168798216735, 'r': 0.05524995644579847, 's': 0.06410999781112219, 't': 0.09143076668795984, 'u': 0.028544753617232275, 'v': 0.00937018391040789, 'w': 0.024949633474642522, 'x': 0.0013084128848962963, 'y': 0.019657016246833945, 'z': 0.0006017180457341452}
+
+encode_dict = dict()
+def bigrams(fr):
+    global encode_dict
+    all_bigrams = ["".join(pair) for pair in permutations(ALPH_1, 2)]
+    for key in fr:
+        freq = fr[key]
+        bi_quantity = round(650*freq) # assign each letter the amount of bigrams proportionate to its probability of occuring
+        if bi_quantity == 0:
+            bi_quantity = 1 # if the frequency is so low that its quantity rounds down to zero, we replace it with 1
+        if bi_quantity > 50:
+            bi_quantity -= 1 # to fix our now too large number of bigrams, we shrink the greatest numbers by 1
+      
+        storage = sample(all_bigrams, bi_quantity) # store the bigrams in a list
+        
+        all_bigrams = [bigram for bigram in all_bigrams if bigram not in storage] # allows us to look over bigrams that have already been selected
+        encode_dict[key]=storage # encode the dictionary with each letter's list
+       
+    return encode_dict
+
+
+def create_string():
+    key_file = open("_vigenere_key.txt")
+    Vig = key_file.read() # retrive the vigenere key from the saved file
+    key_string = Vig # create our string
+    for ky in ALPH_1:
+        two_grams = encode_dict[ky]
+        string_two_grams = "".join(two_grams) # join the two grams for each letter, and then 
+        
+        key_string += ' ' + string_two_grams # add a space and the string for each letter to the string
+        
+    return key_string # return the concatenated string
+
+# we 'split up' our long string into shorter chunks to encrypt more easily
+
+def chopped_up(string_input, prime_bit_length): # we input what we want to chop up and the bit length we used in our vigenere encryption
+    segment_len = (prime_bit_length - 2)//8
+    string= [string_input[i:i+segment_len]for i in range(0,len(string_input), segment_len)]
+    return string
+
+broken_string = chopped_up(create_string(), 1024)
+
+
+
+def char_to_byte(char): # use the binary code function form letures 
+    """
+    Returns the 8 bit binary representation (padded with 
+    leading zeros when necessary) of ord(char), i.e. of 
+    the order of the input character char. 
+    """
+    byte_string = bin(ord(char))[2:]            # The order of char as a binary string 
+    num_zeros = 8 - len(byte_string)            # The number of zeros needed to pad out byte_string
+    byte_string = '0' * num_zeros + byte_string # Now pad out byte_string with num_zeros many zeros
+                                                # to obtain the 8-bit binary representation
+    return byte_string
+
+def binary_key(string_input, prime_bit_length):
+    binary_text = []
+    for value in string_input:
+        binary_value = [char_to_byte(char) for char in value]
+        joined = "".join(binary_value)
+        binary_text.append("1" +joined)
+    return binary_text
+
+
+# now we are ready for RSA encryption using
+input1 = binary_key(broken_string, 1024)
+
+
+# retreive the RSA key from our function
+((N, e), d, k) = RSA_key_generator(bitlength=1024)
+
+
+# here is our RSA encrypt function:
+def RSA_encryption(N, e, input1):
+    encrypted_key_list = []
+    if type(input1) == list:
+        input_list = input1
+    else:
+        input_list = list(input1)
+        
+    # turn each binary integer into an integer
+    
+    for item in input_list:
+        int_item = int(item, 2)
+        i = pow(int_item, e, N)
+        encrypted_key_list.append(i)
+    return encrypted_key_list
+
+# RSA encrypt our input:
+
+Bob_public_key = RSA_encryption(N,e,input1)
+
+
+ALPH_1 = string.ascii_lowercase
+
+
+## our input it treasure island. users cna change this if they want
+message_file = open("message_treasure_island.txt", "r")
+message = message_file.read()
+
+def bigram_message(message):
+    bigrams = []
+    for letter in message:
+        if letter in ALPH_1:
+            x = encode_dict[letter][random.randint(0, len(encode_dict[letter])-1)]
+            bigrams.append(x)
+    message = "".join(bigrams)
+    return message
+
+variable = str(bigram_message(message))
+# add this output to a text file which we can input into the vigenere cipher
+with open("input_text.txt", "w") as input_text:  # 'w' mode opens the file for writing
+    input_text.write(variable)
+
+# now we need to vigenere encrypt this
+
+##### WE NEED TO RSA DECRYPT Bob_public_key, THIS SHOULD GIVE BINARY
+
+
+# Now we have N and d to input into the function
+#(N, d) = RSA_key_generation(bitlength=1024)
+
+# our RSA decrypt function:
+def RSA_decryption(encrypted_input, N, d):
+    complete_key_list = []
+    if type(encrypted_input) == list:
+        decryption_list = encrypted_input
+    else:
+        decryption_list = list(encrypted_input)
+    for item in decryption_list:
+        int_item = int(item)
+        j = pow(int_item, d, N)
+        complete_key_list.append(bin(j)[2:])
+    return complete_key_list
+
+### decrypt the public key:
+decrypted = RSA_decryption(Bob_public_key, N, d)
+
+
+
+def convert_to_text(number):
+    # Remove '0b1' from the string 
+    bin_string = number[1:]
+    bin_int = int(bin_string, 2)
+    text = ''                           
+    length = len(bin_string)
+    for i in range(0, length, 8):  
+        # Pick out binary strings, 8 bits at a time
+        byte_string = bin_string[i:i+8]   
+        # Convert byte_string to a character before appending it to text 
+        text = text + chr(int(byte_string,2))  
+    return text
+
+plaintext = []
+for i in decrypted:
+    j = convert_to_text(i)
+    plaintext.append(j)
+Alice_public_key = "".join(plaintext)
+print(Alice_public_key)
+
+split_parts = Alice_public_key.split()
+
+alph = '0abcdefghijklmnopqrstuvwxyz' # we will use this to reference items in the dictionary
+vigenere_key = split_parts[0] # the vigenere key is the first part
+
+letters = {} # Alice creates a dictionary for the 2grams
+for xx in range(1, len(split_parts)):
+    letter_grams = []
+    i = 1 # ignore vignere key for this part
+    while i < len(split_parts[xx]):
+        bigram1 = split_parts[xx][i-1], split_parts[xx][i] # takes pairs in each value and assigns them to a letter
+        bigram2 = "".join(bigram1)
+        letter_grams.append(bigram2)
+        i += 2
+    letters[alph[xx]] = letter_grams
+
+    reverse_dict = {}
+for letter, grams in letters.items():
+    for gram in grams:
+        reverse_dict[gram] = letter
+
+# print(reverse_dict) # uncomment to see the reverse dictionary working
+# Create a function that decrpyts any bigram encoded message:
+
+def bigram_decrypt(encrypted_2grams_message):
+    global reverse_dict # refer to the dictionary globally so we can use the definition we created above.
+    decrypted_message = ''.join([reverse_dict[gram] for gram in encrypted_2grams_message])
+    return decrypted_message
+
+encrypted_2grams_message = ['wf', 'ud', 'ec', 'of']
+
+code_file = open("decrypted_text.txt")
+dec = code_file.read()
+
+#print(dec)
+
+#we need to put our message into a list of 2grams
+message_grams = []
+i = 1
+while i < len(dec):
+    bigram3 = dec[i-1], dec[i]
+    bigram4 = "".join(bigram3)
+    message_grams.append(bigram4)
+    i += 2
+
+# Message_grams is now the decrypted text as a list of 2grams. we can fianlly use bigram_decrypt...
+bigram_decrypt(message_grams)
+
